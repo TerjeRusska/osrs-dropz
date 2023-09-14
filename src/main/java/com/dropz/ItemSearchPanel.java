@@ -11,12 +11,16 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.ui.components.PluginErrorPanel;
 import net.runelite.client.util.AsyncBufferedImage;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.http.api.item.ItemPrice;
 
 import javax.inject.Inject;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,6 +52,9 @@ class ItemSearchPanel extends JPanel {
     private static final String[] SEARCH_OPTIONS = {"Multiple results found.", "Please pick a specific item from the list."};
     private static final String SEARCH_PANEL = "SEARCH_PANEL";
     private static final String AUTOLIST_RESULTS = "AUTOLIST_RESULTS";
+    private static final BufferedImage SEARCH_BACK_ICON = ImageUtil.loadImageResource(DropzPlugin.class, "/back_icon.png");
+    private final JPanel searchBackIconWrapperPanel = new JPanel(new BorderLayout());
+    private List<ItemPrice> result = new ArrayList<>();
 
     @Inject
     ItemSearchPanel(ClientThread clientThread,
@@ -72,6 +79,28 @@ class ItemSearchPanel extends JPanel {
 
         infoPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
         infoPanel.setContent(SEARCH_DEFAULT[0], SEARCH_DEFAULT[1]);
+        searchBackIconWrapperPanel.add(new JLabel(new ImageIcon(SEARCH_BACK_ICON)), BorderLayout.CENTER);
+        searchBackIconWrapperPanel.setVisible(false);
+        MouseAdapter searchBackIconMouseListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                infoPanel.setContent(SEARCH_OPTIONS[0], SEARCH_OPTIONS[1]);
+                searchBackIconWrapperPanel.setVisible(false);
+                cardLayout.show(mainContainer, SEARCH_PANEL);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            }
+        };
+        searchBackIconWrapperPanel.addMouseListener(searchBackIconMouseListener);
+
 
         searchItemsWrapperPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
         searchItemsWrapperPanel.add(searchItemsGridPanel, BorderLayout.NORTH);
@@ -86,6 +115,7 @@ class ItemSearchPanel extends JPanel {
         constraints.gridy = 0;
 
         searchPanel.add(searchBar, BorderLayout.NORTH);
+        searchPanel.add(searchBackIconWrapperPanel, BorderLayout.WEST);
         searchPanel.add(infoPanel, BorderLayout.CENTER);
 
         mainContainer.add(searchItemsScrollPane, SEARCH_PANEL);
@@ -97,6 +127,7 @@ class ItemSearchPanel extends JPanel {
     }
 
     private boolean updateSearch() {
+        searchBackIconWrapperPanel.setVisible(false);
         cardLayout.show(mainContainer, SEARCH_PANEL);
         String lookup = searchBar.getText();
         searchItemsGridPanel.removeAll();
@@ -126,7 +157,7 @@ class ItemSearchPanel extends JPanel {
             return;
         }
 
-        List<ItemPrice> result = itemManager.search(searchBar.getText());
+        result = itemManager.search(searchBar.getText());
         if (item != null) {
             // FIXME: Sometimes item can have same name with different ID, check for both (example dragon pickaxe)
             result = result.stream().filter(itemPrice -> itemPrice.getId() == item.getId()).collect(Collectors.toList());
@@ -152,8 +183,11 @@ class ItemSearchPanel extends JPanel {
         searchBar.setIcon(IconTextField.Icon.SEARCH);
         searchBar.setEditable(true);
 
-        // TODO: do not clean result and add back button?
-        infoPanel.setContent(itemName, "<br>");
+        // TODO: add item icon and high alch
+        infoPanel.setContent(itemName, "");
+        if (result.size() > 1) {
+            searchBackIconWrapperPanel.setVisible(true);
+        }
         dropSourcesAutolistPanel.updateDropSourcesAutolist(itemName);
     }
 
