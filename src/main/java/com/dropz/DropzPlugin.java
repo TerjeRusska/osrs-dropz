@@ -9,7 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -72,7 +71,10 @@ public class DropzPlugin extends Plugin {
 
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked menuOptionClicked) {
-        // FIXME: Trigger only when user has the plugin UI in focus
+        if (!navButton.isSelected()) {
+            return;
+        }
+
         MenuAction menuAction = menuOptionClicked.getMenuAction();
         if (menuOptionClicked.getMenuOption().equals("Examine") && !excludedExamineMenuActions.contains(menuAction)) {
             int itemId;
@@ -83,6 +85,7 @@ public class DropzPlugin extends Plugin {
                 itemId = menuOptionClicked.getItemId();
             }
             ItemComposition item = itemManager.getItemComposition(itemId);
+            log.info(String.format("%s, %s", item.getId(), item.getMembersName()));
             if (item.getMembersName() == null || item.getMembersName().equals("null")) {
                 return;
             }

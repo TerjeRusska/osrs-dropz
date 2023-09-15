@@ -157,10 +157,10 @@ class ItemSearchPanel extends JPanel {
             return;
         }
 
+        // FIXME: ItemManager is only showing tradeable items
         result = itemManager.search(searchBar.getText());
         if (item != null) {
-            // FIXME: Sometimes item can have same name with different ID, check for both (example dragon pickaxe)
-            result = result.stream().filter(itemPrice -> itemPrice.getId() == item.getId()).collect(Collectors.toList());
+            result = result.stream().filter(itemPrice -> itemPrice.getId() == item.getId() || itemPrice.getName().equals(item.getMembersName())).collect(Collectors.toList());
         }
         if (result.isEmpty()) {
             searchBar.setIcon(IconTextField.Icon.ERROR);
