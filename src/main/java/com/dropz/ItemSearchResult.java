@@ -1,11 +1,11 @@
 package com.dropz;
 
 import lombok.Value;
+import net.runelite.api.ItemComposition;
 import net.runelite.client.util.AsyncBufferedImage;
-import net.runelite.http.api.item.ItemPrice;
 
 @Value
 class ItemSearchResult {
-    ItemPrice itemPrice;
+    ItemComposition itemComposition;
     AsyncBufferedImage itemImage;
 }

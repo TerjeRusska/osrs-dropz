@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
@@ -12,7 +13,6 @@ import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.ui.components.PluginErrorPanel;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.http.api.item.ItemPrice;
 
 import javax.inject.Inject;
 import javax.swing.*;
@@ -22,13 +22,20 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toCollection;
 
 @Slf4j
 class ItemSearchPanel extends JPanel {
 
+    private final Client client;
     private final ClientThread clientThread;
     private final ItemManager itemManager;
     private final ScheduledExecutorService executor;
@@ -54,18 +61,25 @@ class ItemSearchPanel extends JPanel {
     private static final String AUTOLIST_RESULTS = "AUTOLIST_RESULTS";
     private static final BufferedImage SEARCH_BACK_ICON = ImageUtil.loadImageResource(DropzPlugin.class, "/back_icon.png");
     private final JPanel searchBackIconWrapperPanel = new JPanel(new BorderLayout());
-    private List<ItemPrice> result = new ArrayList<>();
+    private List<ItemComposition> allItemCompositions = new ArrayList<>();
+    private List<ItemComposition> resultItemCompositionList = new ArrayList<>();
 
     @Inject
-    ItemSearchPanel(ClientThread clientThread,
+    ItemSearchPanel(Client client, ClientThread clientThread,
                     ItemManager itemManager,
                     ScheduledExecutorService executor,
                     DropSourcesAutolistPanel dropSourcesAutolistPanel) {
+        this.client = client;
         this.clientThread = clientThread;
         this.itemManager = itemManager;
         this.executor = executor;
         // TODO: Autolist panels as MaterialTabs to incorporate Store locations
         this.dropSourcesAutolistPanel = dropSourcesAutolistPanel;
+
+        clientThread.invokeLater(() -> allItemCompositions = IntStream.range(0, client.getItemCount())
+                .mapToObj(itemManager::getItemComposition)
+                .filter(itemComposition -> itemComposition.getNote() == -1)
+                .collect(Collectors.toList()));
 
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -157,25 +171,31 @@ class ItemSearchPanel extends JPanel {
             return;
         }
 
-        // FIXME: ItemManager is only showing tradeable items
-        result = itemManager.search(searchBar.getText());
+        resultItemCompositionList = allItemCompositions.stream()
+                .filter(itemComposition -> itemComposition.getMembersName().toLowerCase().contains(searchBar.getText().toLowerCase()))
+                .collect(Collectors.toList());
         if (item != null) {
-            result = result.stream().filter(itemPrice -> itemPrice.getId() == item.getId() || itemPrice.getName().equals(item.getMembersName())).collect(Collectors.toList());
+            resultItemCompositionList = resultItemCompositionList.stream().filter(itemComposition -> itemComposition.getId() == item.getId()).collect(Collectors.toList());
         }
-        if (result.isEmpty()) {
+        resultItemCompositionList = resultItemCompositionList.stream().collect(
+                collectingAndThen(
+                        toCollection(() ->
+                                new TreeSet<>(Comparator.comparing(ItemComposition::getMembersName))),
+                        ArrayList::new));
+        if (resultItemCompositionList.isEmpty()) {
             searchBar.setIcon(IconTextField.Icon.ERROR);
             infoPanel.setContent(SEARCH_FAIL[0], SEARCH_FAIL[1]);
             searchBar.setEditable(true);
             return;
         }
-        if (result.size() > 1) {
+        if (resultItemCompositionList.size() > 1) {
             infoPanel.setContent(SEARCH_OPTIONS[0], SEARCH_OPTIONS[1]);
-            List<ItemPrice> finalResult = result;
+            List<ItemComposition> finalResult = resultItemCompositionList;
             clientThread.invokeLater(() -> processResult(finalResult));
             return;
         }
 
-        setItemMatch(result.get(0).getName());
+        setItemMatch(resultItemCompositionList.get(0).getMembersName());
     }
 
     void setItemMatch(String itemName) {
@@ -185,16 +205,16 @@ class ItemSearchPanel extends JPanel {
 
         // TODO: add item icon and high alch
         infoPanel.setContent(itemName, "");
-        if (result.size() > 1) {
+        if (resultItemCompositionList.size() > 1) {
             searchBackIconWrapperPanel.setVisible(true);
         }
         dropSourcesAutolistPanel.updateDropSourcesAutolist(itemName);
     }
 
-    private void processResult(List<ItemPrice> result) {
+    private void processResult(List<ItemComposition> result) {
         itemSearchResultList.clear();
         int count = 0;
-        for (ItemPrice item : result) {
+        for (ItemComposition item : result) {
             if (count++ > MAX_SEARCH_ITEMS) {
                 break;
             }
@@ -208,8 +228,8 @@ class ItemSearchPanel extends JPanel {
 
                 ItemPanel itemPanel = new ItemPanel(this,
                         itemSearchResult.getItemImage(),
-                        itemSearchResult.getItemPrice().getName(),
-                        itemSearchResult.getItemPrice().getId());
+                        itemSearchResult.getItemComposition().getMembersName(),
+                        itemSearchResult.getItemComposition().getId());
 
                 if (index++ > 0) {
                     JPanel marginWrapper = new JPanel(new BorderLayout());
