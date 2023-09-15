@@ -13,6 +13,7 @@ import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.ui.components.PluginErrorPanel;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.LinkBrowser;
 
 import javax.inject.Inject;
 import javax.swing.*;
@@ -60,7 +61,11 @@ class ItemSearchPanel extends JPanel {
     private static final String SEARCH_PANEL = "SEARCH_PANEL";
     private static final String AUTOLIST_RESULTS = "AUTOLIST_RESULTS";
     private static final BufferedImage SEARCH_BACK_ICON = ImageUtil.loadImageResource(DropzPlugin.class, "/back_icon.png");
+    private static final BufferedImage WIKI_LOOKUP_IMG = ImageUtil.loadImageResource(DropzPlugin.class, "/Wiki_lookup.png");
+    private static final String baseWikiUrl = "https://oldschool.runescape.wiki";
+    private String selectedItemHref = "";
     private final JPanel searchBackIconWrapperPanel = new JPanel(new BorderLayout());
+    private final JPanel wikiLookupIconWrapper = new JPanel(new BorderLayout());
     private List<ItemComposition> allItemCompositions = new ArrayList<>();
     private List<ItemComposition> resultItemCompositionList = new ArrayList<>();
 
@@ -100,6 +105,7 @@ class ItemSearchPanel extends JPanel {
             public void mouseClicked(MouseEvent e) {
                 infoPanel.setContent(SEARCH_OPTIONS[0], SEARCH_OPTIONS[1]);
                 searchBackIconWrapperPanel.setVisible(false);
+                wikiLookupIconWrapper.setVisible(false);
                 cardLayout.show(mainContainer, SEARCH_PANEL);
             }
 
@@ -114,6 +120,29 @@ class ItemSearchPanel extends JPanel {
             }
         };
         searchBackIconWrapperPanel.addMouseListener(searchBackIconMouseListener);
+
+        JLabel wikiLookupIcon = new JLabel(new ImageIcon(WIKI_LOOKUP_IMG));
+        wikiLookupIconWrapper.setBorder(new EmptyBorder(0, 5, 0, 17));
+        wikiLookupIconWrapper.add(wikiLookupIcon, BorderLayout.CENTER);
+        wikiLookupIconWrapper.setVisible(false);
+        MouseAdapter wikiLookupMouseListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                final String url = baseWikiUrl + selectedItemHref;
+                LinkBrowser.browse(url);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            }
+        };
+        wikiLookupIconWrapper.addMouseListener(wikiLookupMouseListener);
 
 
         searchItemsWrapperPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -131,6 +160,7 @@ class ItemSearchPanel extends JPanel {
         searchPanel.add(searchBar, BorderLayout.NORTH);
         searchPanel.add(searchBackIconWrapperPanel, BorderLayout.WEST);
         searchPanel.add(infoPanel, BorderLayout.CENTER);
+        searchPanel.add(wikiLookupIconWrapper, BorderLayout.EAST);
 
         mainContainer.add(searchItemsScrollPane, SEARCH_PANEL);
         mainContainer.add(dropSourcesAutolistPanel, AUTOLIST_RESULTS);
@@ -142,6 +172,7 @@ class ItemSearchPanel extends JPanel {
 
     private boolean updateSearch() {
         searchBackIconWrapperPanel.setVisible(false);
+        wikiLookupIconWrapper.setVisible(false);
         cardLayout.show(mainContainer, SEARCH_PANEL);
         String lookup = searchBar.getText();
         searchItemsGridPanel.removeAll();
@@ -203,8 +234,10 @@ class ItemSearchPanel extends JPanel {
         searchBar.setIcon(IconTextField.Icon.SEARCH);
         searchBar.setEditable(true);
 
-        // TODO: add item icon and high alch
+        // TODO: add item icon? maybe pretty maybe not
+        selectedItemHref = "/w/" + itemName.replace(" ", "_");
         infoPanel.setContent(itemName, "");
+        wikiLookupIconWrapper.setVisible(true);
         if (resultItemCompositionList.size() > 1) {
             searchBackIconWrapperPanel.setVisible(true);
         }
