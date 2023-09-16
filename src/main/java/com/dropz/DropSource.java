@@ -28,9 +28,9 @@ class DropSource {
     private String rarityPermyriad;
     private String rarityFraction;
     private String rarityOneover;
-    private String levelDataSortValue;
-    private String quantityDataSortValue;
-    private String rarityDataSortValue;
+    private Double levelDataSortValue;
+    private Double quantityDataSortValue;
+    private Double rarityDataSortValue;
     private String rarityColor;
 
     public String getParsedLevelType() {

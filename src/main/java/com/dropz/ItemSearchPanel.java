@@ -122,7 +122,7 @@ class ItemSearchPanel extends JPanel {
         searchBackIconWrapperPanel.addMouseListener(searchBackIconMouseListener);
 
         JLabel wikiLookupIcon = new JLabel(new ImageIcon(WIKI_LOOKUP_IMG));
-        wikiLookupIconWrapper.setBorder(new EmptyBorder(0, 5, 0, 17));
+        wikiLookupIconWrapper.setBorder(new EmptyBorder(0, 3, 0, 4));
         wikiLookupIconWrapper.add(wikiLookupIcon, BorderLayout.CENTER);
         wikiLookupIconWrapper.setVisible(false);
         MouseAdapter wikiLookupMouseListener = new MouseAdapter() {

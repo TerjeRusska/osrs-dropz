@@ -89,7 +89,8 @@ class DropSourcesAutolist {
             Element levelColumn = rowColumns.get(levelColumnIndex);
             dropSource.setLevel(Strings.emptyToNull(levelColumn.text()));
             dropSource.setLevelType(Strings.emptyToNull(levelColumn.select("span").first().attr("class")));
-            dropSource.setLevelDataSortValue(Strings.emptyToNull(levelColumn.attr("data-sort-value")));
+            String levelDataSortValue = Strings.emptyToNull(levelColumn.attr("data-sort-value"));
+            dropSource.setLevelDataSortValue(levelDataSortValue != null ? Double.valueOf(levelDataSortValue) : null);
 
             Element quantityColumn = rowColumns.get(quantityColumnIndex);
             dropSource.setQuantity(Strings.emptyToNull(quantityColumn.text()));
@@ -98,7 +99,8 @@ class DropSourcesAutolist {
             } else {
                 dropSource.setIsNoted(false);
             }
-            dropSource.setQuantityDataSortValue(Strings.emptyToNull(quantityColumn.attr("data-sort-value")));
+            String quantityDataSortValue = Strings.emptyToNull(quantityColumn.attr("data-sort-value"));
+            dropSource.setQuantityDataSortValue(quantityDataSortValue != null ? Double.valueOf(quantityDataSortValue) : null);
 
             Element rarityColumn = rowColumns.get(rarityColumnIndex).select("span").first();
             dropSource.setRarityString(Strings.emptyToNull(rarityColumn.text()));
@@ -107,7 +109,8 @@ class DropSourcesAutolist {
             dropSource.setRarityFraction(Strings.emptyToNull(rarityColumn.attr("data-drop-fraction")));
             dropSource.setRarityPermyriad(Strings.emptyToNull(rarityColumn.attr("data-drop-permyriad")));
             dropSource.setRarityOneover(Strings.emptyToNull(rarityColumn.attr("data-drop-oneover")));
-            dropSource.setRarityDataSortValue(Strings.emptyToNull(rowColumns.get(rarityColumnIndex).attr("data-sort-value")));
+            String rarityDataSortValue = Strings.emptyToNull(rowColumns.get(rarityColumnIndex).attr("data-sort-value"));
+            dropSource.setRarityDataSortValue(rarityDataSortValue != null ? Double.valueOf(rarityDataSortValue) : null);
             dropSource.setRarityColor(Strings.emptyToNull(rowColumns.get(rarityColumnIndex).attr("class")));
 
             //log.info(dropSource.toString());

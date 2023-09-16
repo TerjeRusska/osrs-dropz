@@ -1,5 +1,6 @@
 package com.dropz;
 
+import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.LinkBrowser;
@@ -19,6 +20,7 @@ class DropSourcePanel extends JPanel {
     private static final BufferedImage WIKI_LOOKUP_IMG = ImageUtil.loadImageResource(DropzPlugin.class, "/Wiki_lookup.png");
     private static final String baseWikiUrl = "https://oldschool.runescape.wiki";
     private static final Dimension ICON_SIZE = new Dimension(16, 16);
+    @Getter
     private final DropSource dropSource;
     private final BufferedImage skillIcon;
     private final GridBagConstraints constraints = new GridBagConstraints();
