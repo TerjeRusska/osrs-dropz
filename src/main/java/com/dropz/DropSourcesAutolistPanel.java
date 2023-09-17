@@ -26,6 +26,7 @@ import static com.dropz.DropSource.LEVEL_TYPE_REWARD;
 class DropSourcesAutolistPanel extends JPanel {
     private final ClientThread clientThread;
     private final SkillIconManager skillIconManager;
+    private final DropSourcesAutolist dropSourcesAutolist;
     private final JPanel dropSourcesAutolistGridPanel = new JPanel(new GridBagLayout());
     private final JPanel dropSourcesAutolistWrapperPanel = new JPanel(new BorderLayout());
     private final JScrollPane dropSourcesAutolistScrollPane = new JScrollPane(
@@ -48,9 +49,10 @@ class DropSourcesAutolistPanel extends JPanel {
     private boolean ascendingOrder = true;
 
     @Inject
-    DropSourcesAutolistPanel(ClientThread clientThread, SkillIconManager skillIconManager) {
+    DropSourcesAutolistPanel(ClientThread clientThread, SkillIconManager skillIconManager, DropSourcesAutolist dropSourcesAutolist) {
         this.clientThread = clientThread;
         this.skillIconManager = skillIconManager;
+        this.dropSourcesAutolist = dropSourcesAutolist;
 
         combatIcon = ImageUtil.loadImageResource(getClass(), "/multicombat.png");
         rewardIcon = ImageUtil.loadImageResource(getClass(), "/casket.png");
@@ -95,7 +97,7 @@ class DropSourcesAutolistPanel extends JPanel {
         quantityOrderingPanel.highlight(false, ascendingOrder);
         rarityOrderingPanel.highlight(false, ascendingOrder);
 
-        ArrayList<DropSource> wikiResults = DropSourcesAutolist.requestWiki(itemName);
+        ArrayList<DropSource> wikiResults = dropSourcesAutolist.requestWiki(itemName);
         if (wikiResults == null) {
             return;
         }

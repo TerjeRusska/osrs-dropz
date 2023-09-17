@@ -10,8 +10,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Slf4j
 @Getter
@@ -19,34 +19,46 @@ class DropSourcesAutolist {
     private static final String dropSourcesRequestBase = "format=json&action=parse&disablelimitreport=true&contentmodel=wikitext";
     private static final String dropSourcesRequestFormat = "&text={{Drop sources|%s|limit=10000|incrdt=y}}";
 
-    public static ArrayList<DropSource> requestWiki(String itemName) throws IOException {
+    private HashMap<String, ArrayList<DropSource>> dropSourcesAutolistCache = new HashMap<>();
+
+    public ArrayList<DropSource> requestWiki(String itemName) {
+        if (itemName == null) {
+            return null;
+        }
+        if (dropSourcesAutolistCache.containsKey(itemName)) {
+            return dropSourcesAutolistCache.get(itemName);
+        }
+
         String wikiApiResponseBody = requestWikiAutolist(itemName);
         String wikiAutolistHtml = extractWikiAutolistHtml(wikiApiResponseBody);
         Element wikiAutolistTable = extractWikiAutolistTable(wikiAutolistHtml);
-        //log.info("Autolist table elem: " + wikiAutolistTable);
-        if (wikiAutolistTable == null) {
-            return null;
+        ArrayList<DropSource> dropSources = parseAutolistTable(wikiAutolistTable);
+        if (dropSources != null) {
+            dropSourcesAutolistCache.put(itemName, dropSources);
         }
-        return parseAutolistTable(wikiAutolistTable);
+        return dropSources;
     }
 
-    private static String requestWikiAutolist(String itemName) throws IOException {
+    private String requestWikiAutolist(String itemName) {
         String requestQuery = dropSourcesRequestBase + String.format(dropSourcesRequestFormat, itemName);
         return OsrsWikiScraper.requestOsrsWikiApi(requestQuery);
     }
 
-    private static String extractWikiAutolistHtml(String wikiApiResponseBody) {
+    private String extractWikiAutolistHtml(String wikiApiResponseBody) {
         JsonObject responseJson = new JsonParser().parse(wikiApiResponseBody).getAsJsonObject();
         return responseJson.get("parse").getAsJsonObject().get("text").getAsJsonObject().get("*").getAsString();
     }
 
-    private static Element extractWikiAutolistTable(String wikiAutolistHtml) {
+    private Element extractWikiAutolistTable(String wikiAutolistHtml) {
         Document doc = Jsoup.parseBodyFragment(wikiAutolistHtml);
         Elements docTables = doc.select("table");
-        return docTables.isEmpty() ? null : docTables.first();
+        return docTables.first();
     }
 
-    private static ArrayList<DropSource> parseAutolistTable(Element wikiAutolistTable) {
+    private ArrayList<DropSource> parseAutolistTable(Element wikiAutolistTable) {
+        if (wikiAutolistTable == null) {
+            return null;
+        }
         ArrayList<DropSource> dropSources = new ArrayList<>();
 
         int sourceColumnIndex = 0;
@@ -58,6 +70,9 @@ class DropSourcesAutolist {
 
         // Source|Level|Quantity|Rarity
         Element tableHeaderRow = tableRows.first();
+        if (tableHeaderRow == null) {
+            return null;
+        }
         int index = 0;
         for (Element rowColumns : tableHeaderRow.select("th")) {
             switch (rowColumns.text()) {
@@ -83,14 +98,16 @@ class DropSourcesAutolist {
             Elements rowColumns = tableRow.select("td");
 
             Element sourceColumn = rowColumns.get(sourceColumnIndex).select("a").first();
-            dropSource.setSourceName(Strings.emptyToNull(sourceColumn.text()));
-            dropSource.setSourceHref(Strings.emptyToNull(sourceColumn.attr("href")));
+            if (sourceColumn != null) {
+                dropSource.setSourceName(Strings.emptyToNull(sourceColumn.text()));
+                dropSource.setSourceHref(Strings.emptyToNull(sourceColumn.attr("href")));
+            }
 
             Element levelColumn = rowColumns.get(levelColumnIndex);
             dropSource.setLevel(Strings.emptyToNull(levelColumn.text()));
             dropSource.setLevelType(Strings.emptyToNull(levelColumn.select("span").first().attr("class")));
             String levelDataSortValue = Strings.emptyToNull(levelColumn.attr("data-sort-value"));
-            dropSource.setLevelDataSortValue(levelDataSortValue != null ? Double.valueOf(levelDataSortValue) : null);
+            dropSource.setLevelDataSortValue(levelDataSortValue != null ? Double.valueOf(levelDataSortValue.replace(",", "")) : null);
 
             Element quantityColumn = rowColumns.get(quantityColumnIndex);
             dropSource.setQuantity(Strings.emptyToNull(quantityColumn.text()));
@@ -100,7 +117,7 @@ class DropSourcesAutolist {
                 dropSource.setIsNoted(false);
             }
             String quantityDataSortValue = Strings.emptyToNull(quantityColumn.attr("data-sort-value"));
-            dropSource.setQuantityDataSortValue(quantityDataSortValue != null ? Double.valueOf(quantityDataSortValue) : null);
+            dropSource.setQuantityDataSortValue(quantityDataSortValue != null ? Double.valueOf(quantityDataSortValue.replace(",", "")) : null);
 
             Element rarityColumn = rowColumns.get(rarityColumnIndex).select("span").first();
             dropSource.setRarityString(Strings.emptyToNull(rarityColumn.text()));
@@ -110,7 +127,7 @@ class DropSourcesAutolist {
             dropSource.setRarityPermyriad(Strings.emptyToNull(rarityColumn.attr("data-drop-permyriad")));
             dropSource.setRarityOneover(Strings.emptyToNull(rarityColumn.attr("data-drop-oneover")));
             String rarityDataSortValue = Strings.emptyToNull(rowColumns.get(rarityColumnIndex).attr("data-sort-value"));
-            dropSource.setRarityDataSortValue(rarityDataSortValue != null ? Double.valueOf(rarityDataSortValue) : null);
+            dropSource.setRarityDataSortValue(rarityDataSortValue != null ? Double.valueOf(rarityDataSortValue.replace(",", "")) : null);
             dropSource.setRarityColor(Strings.emptyToNull(rowColumns.get(rarityColumnIndex).attr("class")));
 
             //log.info(dropSource.toString());

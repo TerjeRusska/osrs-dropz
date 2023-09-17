@@ -3,18 +3,25 @@ package com.dropz;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URL;
 
 @Slf4j
 class OsrsWikiScraper {
 
     private static final OkHttpClient client = new OkHttpClient();
+    static final String baseWikiUrl = "https://oldschool.runescape.wiki";
     /**
      * <a href="https://oldschool.runescape.wiki/api.php">MediaWiki API help</a>
      */
-    static final String baseWikiApiUrl = "https://oldschool.runescape.wiki/api.php?";
+    static final String baseWikiApiUrl = baseWikiUrl + "/api.php?";
 
-    static String requestOsrsWikiApi(String requestQuery) throws IOException {
+    static String requestOsrsWikiApi(String requestQuery) {
+        if (requestQuery == null) {
+            return null;
+        }
         String requestUrl = baseWikiApiUrl + requestQuery;
         log.info("Wiki API request: " + requestUrl);
         Request request = new Request.Builder()
@@ -22,10 +29,23 @@ class OsrsWikiScraper {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            assert response.body() != null;
-            String responseBody = response.body().string();
-            //log.info("Wiki API response: " + responseBody);
-            return responseBody;
+            return response.body() != null ? response.body().string() : null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    static BufferedImage requestOsrsWikiImage(String imageSrc) {
+        if (imageSrc == null) {
+            return null;
+        }
+        String requestUrlString = baseWikiUrl + imageSrc;
+        log.info("Wiki image request: " + requestUrlString);
+        try {
+            URL requestUrl = new URL(requestUrlString);
+            return ImageIO.read(requestUrl);
+        } catch (IOException e) {
+            return null;
         }
     }
 }
